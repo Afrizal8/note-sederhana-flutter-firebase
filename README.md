@@ -22,6 +22,7 @@ Berikut adalah preview dari aplikasi ini:
   <br>
   <i>GIF memutar otomatis menampilkan fitur Tambah, Edit, dan Hapus.</i>
 </p>
+
 ## Teknologi yang Digunakan
 
 * **Framework:** [Flutter](https://flutter.dev/)
