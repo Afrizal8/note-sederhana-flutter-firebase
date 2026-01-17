@@ -1,16 +1,29 @@
-# note
+# Simple Note App - Flutter
 
-A new Flutter project.
+Aplikasi catatan sederhana berbasis Flutter untuk Android yang mendukung operasi CRUD (Create, Read, Update, Delete). Dibuat dengan antarmuka yang bersih dan minimalis untuk memudahkan manajemen tugas harian Anda.
 
-## Getting Started
+---
 
-This project is a starting point for a Flutter application.
+## Fitur Utama
 
-A few resources to get you started if this is your first Flutter project:
+* **Tambah Catatan:** Simpan ide Anda dengan judul dan isi konten.
+* **Lihat Daftar:** Tampilan list yang rapi untuk semua catatan tersimpan.
+* **Edit Catatan:** Memperbarui judul atau isi catatan yang sudah ada.
+* **Hapus Catatan:** Menghapus catatan dengan fitur konfirmasi atau geser (swipe).
+* **Penyimpanan Cloud:** Catatan tidak hilang meski aplikasi di-uninstal karena data tersimpan di server/cloud.
+---
 
-- [Lab: Write your first Flutter app](https://docs.flutter.dev/get-started/codelab)
-- [Cookbook: Useful Flutter samples](https://docs.flutter.dev/cookbook)
+## Demo Aplikasi
 
-For help getting started with Flutter development, view the
-[online documentation](https://docs.flutter.dev/), which offers tutorials,
-samples, guidance on mobile development, and a full API reference.
+Berikut adalah preview dari aplikasi ini:
+
+<p align="center">
+  <img src="assets/demo/note_demo.gif" width="300" alt="Demo Catatan Cloud">
+  <br>
+  <i>GIF memutar otomatis menampilkan fitur Tambah, Edit, dan Hapus.</i>
+</p>
+## Teknologi yang Digunakan
+
+* **Framework:** [Flutter](https://flutter.dev/)
+* **Language:** [Dart](https://dart.dev/)
+* **Database:** Firebase
