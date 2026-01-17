@@ -1,109 +1,161 @@
-import 'package:note/FirebaseServices/helper.dart';
-import 'package:note/FirebaseServices/services.dart';
 import 'package:firebase_auth/firebase_auth.dart';
+import 'package:note/FirebaseServices/services.dart';
+import 'package:note/View/Notes/notes_model.dart';
 
-import '../View/Notes/notes_model.dart';
-
-class AuthResult {
-  final bool success;
-  final String? message;
-  const AuthResult({required this.success, this.message});
-}
-
-class Repository extends FirebaseHelper {
-  final FirebaseAuth _auth = FirebaseAuth.instance;
+class Repository {
   final FirebaseServices _services = FirebaseServices();
+  final FirebaseAuth _auth = FirebaseAuth.instance;
 
-  Future<AuthResult> signIn({
+  static const String _notesCollection = 'notes';
+
+  // ========== AUTHENTICATION METHODS ==========
+
+  /// Sign In with email and password
+  Future<User?> signIn({
     required String email,
     required String password,
   }) async {
     try {
-      UserCredential usr = await _auth.signInWithEmailAndPassword(
-        email: email,
+      final userCredential = await _auth.signInWithEmailAndPassword(
+        email: email.trim(),
         password: password,
       );
-      if (usr.user != null) {
-        return AuthResult(success: true);
-      } else {
-        return AuthResult(success: false, message: "User not found");
-      }
-    } on FirebaseException catch (e) {
-      final message = getErrorMessage(e);
-      return AuthResult(success: false, message: message);
+      return userCredential.user;
+    } on FirebaseAuthException catch (e) {
+      throw _handleAuthException(e);
+    } catch (e) {
+      throw Exception('Failed to sign in: $e');
     }
   }
 
-  Future<AuthResult> signUp({
+  /// Sign Up with email and password
+  Future<User?> signUp({
     required String email,
     required String password,
-    required String fullName,
+    String? displayName,
   }) async {
     try {
-      UserCredential usr = await _auth.createUserWithEmailAndPassword(
-        email: email,
+      final userCredential = await _auth.createUserWithEmailAndPassword(
+        email: email.trim(),
         password: password,
       );
-      if (usr.user != null) {
-        await usr.user?.updateDisplayName(fullName);
-        await usr.user?.reload();
-        return AuthResult(success: true);
-      } else {
-        return AuthResult(success: false, message: "Failed to create user");
+
+      // Update display name if provided
+      if (displayName != null && displayName.isNotEmpty) {
+        await userCredential.user?.updateDisplayName(displayName.trim());
+        await userCredential.user?.reload();
       }
-    } on FirebaseException catch (e) {
-      final message = getErrorMessage(e);
-      return AuthResult(success: false, message: message);
+
+      return _auth.currentUser;
+    } on FirebaseAuthException catch (e) {
+      throw _handleAuthException(e);
+    } catch (e) {
+      throw Exception('Failed to sign up: $e');
     }
   }
 
+  /// Sign out
   Future<void> signOut() async {
-    await _auth.signOut();
+    try {
+      await _auth.signOut();
+    } catch (e) {
+      throw Exception('Failed to sign out: $e');
+    }
   }
 
-  //Notes --------------------------------
+  /// Get current user
+  User? getCurrentUser() {
+    return _auth.currentUser;
+  }
+
+  /// Reset password
+  Future<void> resetPassword({required String email}) async {
+    try {
+      await _auth.sendPasswordResetEmail(email: email.trim());
+    } on FirebaseAuthException catch (e) {
+      throw _handleAuthException(e);
+    } catch (e) {
+      throw Exception('Failed to reset password: $e');
+    }
+  }
+
+  /// Handle Firebase Auth exceptions
+  String _handleAuthException(FirebaseAuthException e) {
+    switch (e.code) {
+      case 'user-not-found':
+        return 'No user found with this email';
+      case 'wrong-password':
+        return 'Wrong password';
+      case 'email-already-in-use':
+        return 'Email is already registered';
+      case 'invalid-email':
+        return 'Invalid email address';
+      case 'weak-password':
+        return 'Password is too weak (minimum 6 characters)';
+      case 'user-disabled':
+        return 'This account has been disabled';
+      case 'too-many-requests':
+        return 'Too many attempts. Please try again later';
+      case 'operation-not-allowed':
+        return 'Operation not allowed';
+      case 'invalid-credential':
+        return 'Invalid email or password';
+      default:
+        return e.message ?? 'Authentication failed';
+    }
+  }
+
+  // ========== NOTES CRUD METHODS ==========
+
+  /// Get all notes (tanpa filter user)
   Future<List<NotesModel>> getNotes() async {
     try {
-      final notes = await _services.get(path: 'notes');
-      return notes.map((e) => NotesModel.fromMap(e)).toList();
+      final notesData = await _services.get(path: _notesCollection);
+
+      // Return semua notes tanpa filter userId
+      return notesData.map((data) => NotesModel.fromMap(data)).toList();
     } catch (e) {
       return [];
     }
   }
 
+  /// Add new note (tanpa userId)
   Future<String> addNote({required NotesModel note}) async {
     try {
-      return await _services.add(path: 'notes', data: note.toMap());
+      final noteData = note.toMap();
+      // Tidak perlu tambahkan userId
+
+      final docId = await _services.add(path: _notesCollection, data: noteData);
+
+      return docId;
     } catch (e) {
-      return e.toString();
+      return '';
     }
   }
 
+  /// Update existing note
   Future<bool> updateNote({required NotesModel note}) async {
     try {
-      final isUpdated = await _services.update(
-        path: 'notes',
-        data: note.toMap(),
+      if (note.id == null || note.id!.isEmpty) return false;
+
+      final noteData = note.toMap();
+      // Remove id from data since it's used as docId
+      noteData.remove('id');
+
+      return await _services.update(
+        path: _notesCollection,
+        data: noteData,
         docId: note.id!,
       );
-      if (isUpdated) {
-        return true;
-      } else {
-        return false;
-      }
     } catch (e) {
       return false;
     }
   }
 
+  /// Delete note
   Future<bool> deleteNote({required String docId}) async {
     try {
-      final bool isDelete = await _services.delete(path: 'notes', docId: docId);
-      if (isDelete) {
-        return true;
-      } else {
-        return false;
-      }
+      return await _services.delete(path: _notesCollection, docId: docId);
     } catch (e) {
       return false;
     }
